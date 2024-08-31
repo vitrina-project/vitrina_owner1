@@ -1,0 +1,56 @@
+version: '3.9'
+services:
+  db:
+    container_name: db_ogogo
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    image: postgres:15-alpine
+    volumes:
+      - db_ogogo:/var/lib/postgresql/data
+    env_file:
+      - .env
+    command: -p ${POSTGRES_PORT}
+
+  backend:
+    container_name: backend_ogogo
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_PORT}
+    logging:
+      driver: journald
+    command: "sh ./entrypoint.sh"
+    env_file:
+      - .env
+
+    volumes:
+      - ./entrypoint.sh:/backend/entrypoint.sh
+      - ../../backend:/backend
+      - staticfiles_ogogo:/backend/static/
+      - media_ogogo:/backend/media/
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:1.19.3
+    container_name: nginx_ogogo
+    logging:
+      driver: journald
+    env_file:
+      - .env
+    ports:
+      - ${NGINX_PORT}:${NGINX_PORT}
+    volumes:
+      - ./nginx.conf:/etc/nginx/templates/default.conf.template
+      - staticfiles_ogogo:/backend/static/
+      - media_ogogo:/backend/media/
+#      - ../../frontend/:/frontend/
+#    depends_on:
+#      - frontend
+
+
+volumes:
+  staticfiles_ogogo:
+  media_ogogo:
+  db_ogogo:

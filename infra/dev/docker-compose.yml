@@ -1,0 +1,97 @@
+version: '3.9'
+services:
+  db:
+    container_name: db
+    restart: always
+    expose:
+      - ${POSTGRES_PORT}
+    image: postgis/postgis:15-3.3
+    volumes:
+      - db:/var/lib/postgresql/data
+    env_file:
+      - .env
+    command: -p ${POSTGRES_PORT}
+
+#  celery-worker:
+#    restart: always
+#    build:
+#      context: ../backend
+#      dockerfile: Dockerfile
+#    env_file:
+#      .env
+#    command: "celery -A core worker"
+#    volumes:
+#      - ../backend:/backend
+#    depends_on:
+#      - backend
+#
+#  celery-beat:
+#    restart: always
+#    build:
+#      context: ../haccp_backend
+#      dockerfile: Dockerfile
+#    env_file:
+#      .env
+#    command: "celery -A core beat"
+#    volumes:
+#      - ../haccp_backend:/backend
+#    depends_on:
+#      - backend
+#
+  redis:
+    restart: always
+    image: bitnami/redis:7.2.4
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PORT_NUMBER=${REDIS_PORT}
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+
+  backend:
+    container_name: backend
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_PORT}
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    restart: always
+    command: "sh ./entrypoint.sh"
+    logging:
+      driver: journald
+    volumes:
+      - ./entrypoint.sh:/backend/entrypoint.sh
+      - ../backend:/backend
+      - staticfiles:/backend/static/
+      - media:/backend/media/
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:1.27
+    container_name: nginx
+    restart: always
+    logging:
+      driver: journald
+    env_file:
+      - .env
+    ports:
+      - ${NGINX_PORT}:${NGINX_PORT}
+    volumes:
+      - ./nginx.conf:/etc/nginx/templates/default.conf.template
+      - staticfiles:/backend/static/
+      - media:/backend/media/
+      - ../frontend:/frontend/
+    depends_on:
+      - backend
+
+
+
+volumes:
+  staticfiles:
+  redis_data:
+  media:
+  db:
