@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.db import models
 
+from core.base_models import Genders
+
 
 class UserManager(DjangoUserManager):
     def _create_user(self, phone, password, **extra_fields):
@@ -37,17 +39,12 @@ class User(AbstractUser):
         USER = 'USER', 'Пользователь'
         MODERATOR = 'MODERATOR', 'Модератор'
 
-    class Genders(models.IntegerChoices):
-        MALE = 1
-        FEMALE = 2
-
     username = models.CharField(max_length=120, blank=True, null=True)
     email = models.EmailField('Email', db_index=True, unique=True)
     gender = models.IntegerField('Пол', choices=Genders.choices)
-    city = models.CharField(max_length=120, blank=True)
+    city = models.CharField('Город', max_length=120, blank=True)
 
     notify_email = models.BooleanField('Уведомлять по email да/нет', default=False)
-    confirm_email = models.BooleanField('Почта подтверждена да/нет', default=False)
     role = models.CharField('Роль', max_length=20, choices=UserRoles.choices, default=UserRoles.USER, db_index=True)
 
     USERNAME_FIELD = 'email'
