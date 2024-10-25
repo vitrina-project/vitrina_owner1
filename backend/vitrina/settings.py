@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'drf_spectacular',
 
     'users',
+    'shop',
+    'orders',
 ]
 
 MIDDLEWARE = [
@@ -99,13 +101,13 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'virtina.wsgi.application'
+WSGI_APPLICATION = 'vitrina.wsgi.application'
 
 DB_HOST = get_required_env('POSTGRES_HOST', 'localhost')
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.contrib.gis.db.backends.postgis",
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
         "NAME": get_required_env('POSTGRES_DB'),
         "USER": get_required_env('POSTGRES_USER'),
         "PASSWORD": get_required_env('POSTGRES_PASSWORD'),
@@ -203,8 +205,5 @@ REDIS_HOST = get_required_env('REDIS_HOST')
 REDIS_PORT = get_required_env('REDIS_PORT')
 REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}"
 
-# SMSC
-SMSC_LOGIN = get_required_env('SMSC_LOGIN')
-SMSC_PASSWORD = get_required_env('SMSC_PASSWORD')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

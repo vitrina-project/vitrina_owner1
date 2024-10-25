@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(versioning_class=URLPathVersioning), name='docs'),
 
     path('api/v1/', include('users.urls')),
+    path('api/v1/', include('shop.urls')),
 ]
 if settings.DEBUG:
     import debug_toolbar

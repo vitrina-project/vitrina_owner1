@@ -6,20 +6,20 @@ from core.base_models import Genders
 
 
 class UserManager(DjangoUserManager):
-    def _create_user(self, phone, password, **extra_fields):
-        if not phone:
+    def _create_user(self, email, password, **extra_fields):
+        if not email:
             raise ValueError("The given phone must be set")
-        user = self.model(phone=phone, **extra_fields)
+        user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_user(self, phone=None, password='None', **extra_fields):
+    def create_user(self, email=None, password='None', **extra_fields):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        return self._create_user(phone, password, **extra_fields)
+        return self._create_user(email, password, **extra_fields)
 
-    def create_superuser(self, phone=None, password='samsa123', **extra_fields):
+    def create_superuser(self, email=None, password='samsa123', **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("role", 'ADMIN')
@@ -29,7 +29,7 @@ class UserManager(DjangoUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
 
-        return self._create_user(phone, password, **extra_fields)
+        return self._create_user(email, password, **extra_fields)
 
 
 class User(AbstractUser):
@@ -41,14 +41,14 @@ class User(AbstractUser):
 
     username = models.CharField(max_length=120, blank=True, null=True)
     email = models.EmailField('Email', db_index=True, unique=True)
-    gender = models.IntegerField('Пол', choices=Genders.choices)
+    gender = models.IntegerField('Пол', choices=Genders.choices, blank=True, null=True)
     city = models.CharField('Город', max_length=120, blank=True)
 
     notify_email = models.BooleanField('Уведомлять по email да/нет', default=False)
     role = models.CharField('Роль', max_length=20, choices=UserRoles.choices, default=UserRoles.USER, db_index=True)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'middle_name', 'password']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'password']
 
     objects = UserManager()
 

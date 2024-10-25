@@ -54,7 +54,7 @@ services:
     ports:
       - ${BACKEND_PORT}:${BACKEND_PORT}
     build:
-      context: ../backend
+      context: ../../backend
       dockerfile: Dockerfile
     env_file:
       - .env
@@ -64,9 +64,9 @@ services:
       driver: journald
     volumes:
       - ./entrypoint.sh:/backend/entrypoint.sh
-      - ../backend:/backend
+      - ../../backend:/backend
       - staticfiles:/backend/static/
-      - media:/backend/media/
+      - ../../backend/media:/backend/media/
     depends_on:
       - db
 
@@ -83,7 +83,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/templates/default.conf.template
       - staticfiles:/backend/static/
-      - media:/backend/media/
+      - ../../backend/media:/backend/media/
       - ../frontend:/frontend/
     depends_on:
       - backend
@@ -93,5 +93,4 @@ services:
 volumes:
   staticfiles:
   redis_data:
-  media:
   db:
