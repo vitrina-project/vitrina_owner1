@@ -1,29 +1,49 @@
 from django.contrib import admin
 
-from core.admin import LinkInlineForm
-from shop.models import Style, CatalogItem, ItemSKU, Brand, Property, Category, PropertyKey, Image
+from core.permissions import StafferPermissionMixin
+from shop.models import Style, CatalogItem, ItemSKU, Brand, Property, Category, PropertyKey, Image, LifeStyle, Shop
+
+
+@admin.register(Shop)
+class ShopAdmin(StafferPermissionMixin, admin.ModelAdmin):
+    list_display = ('id', 'name', 'address')
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def get_queryset(self, request):
+        if request.user.is_superuser:
+            return super().get_queryset(request)
+        return super().get_queryset(request).filter(user=request.user)
 
 
 @admin.register(Image)
-class ImageAdmin(admin.ModelAdmin):
+class ImageAdmin(StafferPermissionMixin, admin.ModelAdmin):
     list_display = ('image',)
 
     def has_module_permission(self, request):
         return False
 
 
-# ItemSize)
+@admin.register(LifeStyle)
+class LifeStyleAdmin(admin.ModelAdmin):
+    list_display = ('id', 'description')
 
 
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
-    list_filter = ('type',)
+    list_filter = ('type', 'key')
     list_display = ('id', 'key', 'type', 'value')
 
+    def has_view_permission(self, request, obj=None):
+        return True
 
 @admin.register(PropertyKey)
 class PropertyAdmin(admin.ModelAdmin):
     list_filter = ('name',)
+
+    def has_view_permission(self, request, obj=None):
+        return True
 
     def has_module_permission(self, request):
         return False
@@ -34,14 +54,20 @@ class BrandAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug',)
     readonly_fields = ('slug',)
 
+    def has_view_permission(self, request, obj=None):
+        return True
 
-class ItemSKUImageInline(admin.StackedInline):
+class ItemSKUImageInline(StafferPermissionMixin, admin.StackedInline):
     model = ItemSKU.images.through
     extra = 0
 
-class ItemImageInline(admin.StackedInline):
+
+class ItemImageInline(StafferPermissionMixin, admin.StackedInline):
     model = CatalogItem.images.through
     extra = 0
+
+    def has_add_permission(self, *args, **kwargs):
+        return True
 
 
 class PropertyInline(admin.TabularInline):
@@ -52,13 +78,22 @@ class PropertyInline(admin.TabularInline):
 
 
 @admin.register(ItemSKU)
-class ItemSKUAdmin(admin.ModelAdmin):
+class ItemSKUAdmin(StafferPermissionMixin, admin.ModelAdmin):
     inlines = [ItemSKUImageInline]
     # list_filter = ('item',)
     raw_id_fields = ('item',)
     search_fields = ('sku_id', 'id')
     list_display = ('id', 'item', 'discount')
     exclude = ('images',)
+
+    def get_queryset(self, request):
+        if request.user.is_superuser:
+            return super().get_queryset(request)
+        return super().get_queryset(request).filter(item__shop__user=request.user)
+
+    def has_delete_permission(self, request, obj=None):
+        return True
+
     # readonly_fields = ('properties', 'item')
 
     # def get_queryset(self, request):
@@ -79,6 +114,9 @@ class StyleAdmin(admin.ModelAdmin):
     def count_items(self, obj):
         return obj.items.count()
 
+    def has_view_permission(self, request, obj=None):
+        return True
+
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -87,25 +125,54 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ('name', 'slug',)
     readonly_fields = ('slug',)
 
+    def has_view_permission(self, request, obj=None):
+        return True
+
     def count_items(self, obj):
         return obj.items.count()
 
 
-class ItemSKUInline(admin.TabularInline):
+class ItemSKUInline(StafferPermissionMixin, admin.StackedInline):
     extra = 0
     model = ItemSKU
     show_change_link = True
-    fields = ('pk',)
+    # fields = ('pk',)
     readonly_fields = ('pk',)
-    form = LinkInlineForm
+    raw_id_fields = ('properties',)
+
+    # form = LinkInlineForm
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('properties')
 
 
 @admin.register(CatalogItem)
-class CatalogItemAdmin(admin.ModelAdmin):
+class CatalogItemAdmin(StafferPermissionMixin, admin.ModelAdmin):
     list_display = ('id', 'name', 'slug', 'score', 'created_at')
-    list_filter = ('styles',)
+    list_filter = ('styles', 'categories')
     exclude = ('images',)
     inlines = [ItemSKUInline, ItemImageInline]
     list_per_page = 100
     search_fields = ('name', 'slug', 'skus__sku_id', 'id')
     readonly_fields = ('slug',)
+    list_select_related = ('properties', 'skus__properties')
+    raw_id_fields = ('properties',)
+
+    def get_list_display(self, request):
+        list_display = super().get_list_display(request)
+        if request.user.is_superuser:
+            list_display += ('shop',)
+        return list_display
+
+    def has_delete_permission(self, request, obj=None):
+        return True
+
+    def get_queryset(self, request):
+        if request.user.is_superuser:
+            return super().get_queryset(request)
+        return super().get_queryset(request).filter(
+            shop__user=request.user)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "shop" and not request.user.is_superuser:
+            kwargs["queryset"] = Shop.objects.filter(user=request.user)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)

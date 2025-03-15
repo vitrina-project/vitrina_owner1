@@ -13,6 +13,7 @@ urlpatterns = [
 
     path('api/v1/', include('users.urls')),
     path('api/v1/', include('shop.urls')),
+    path('api/v1/', include('orders.urls')),
 ]
 if settings.DEBUG:
     import debug_toolbar

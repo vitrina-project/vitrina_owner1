@@ -84,7 +84,7 @@ services:
       - ./nginx.conf:/etc/nginx/templates/default.conf.template
       - staticfiles:/backend/static/
       - ../../backend/media:/backend/media/
-      - ../frontend:/frontend/
+      - ../../frontend:/frontend/
     depends_on:
       - backend
 

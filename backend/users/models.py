@@ -35,7 +35,7 @@ class UserManager(DjangoUserManager):
 class User(AbstractUser):
     class UserRoles(models.TextChoices):
         ADMIN = 'ADMIN', 'Администратор'
-        SERVICE = 'SERVICE', 'Сервис'
+        SHOP = 'SHOP', 'Магазин'
         USER = 'USER', 'Пользователь'
         MODERATOR = 'MODERATOR', 'Модератор'
 
@@ -47,10 +47,22 @@ class User(AbstractUser):
     notify_email = models.BooleanField('Уведомлять по email да/нет', default=False)
     role = models.CharField('Роль', max_length=20, choices=UserRoles.choices, default=UserRoles.USER, db_index=True)
 
+    shop = models.OneToOneField(
+        'shop.Shop', on_delete=models.CASCADE, null=True, blank=True, verbose_name='Магазин', related_name='user'
+    )
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'password']
 
     objects = UserManager()
+
+    @property
+    def is_shop(self):
+        return self.role == self.UserRoles.SHOP
+
+    @property
+    def is_user(self):
+        return self.role == self.UserRoles.USER
 
     def __str__(self):
         return str(self.email)
@@ -63,6 +75,10 @@ class User(AbstractUser):
         verbose_name = 'Пользователи'
         verbose_name_plural = 'Пользователи'
 
+    def save(self, *args, **kwargs):
+        if self.role in [self.UserRoles.SHOP, self.UserRoles.ADMIN, self.UserRoles.MODERATOR]:
+            self.is_staff = True
+        return super().save(*args, **kwargs)
 
 class ConfirmCode(models.Model):
     class ConfirmCodeTypes(models.TextChoices):

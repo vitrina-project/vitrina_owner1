@@ -4,6 +4,19 @@ from core.base_models import AbstractBaseModel, Genders
 from core.utils import slugify, get_random_string
 
 
+class Shop(AbstractBaseModel):
+    name = models.CharField(max_length=200)
+    address = models.CharField(max_length=300)
+    booking_days = models.IntegerField('Кол-во дней для бронирования товара', default=7)
+
+    class Meta:
+        verbose_name = 'Магазин'
+        verbose_name_plural = 'Магазины'
+
+    def __str__(self):
+        return f'{self.name} - {self.address}'
+
+
 class Brand(models.Model):
     name = models.CharField('Название', max_length=300, db_index=True)
     slug = models.SlugField(max_length=300, unique=True)
@@ -15,7 +28,7 @@ class Brand(models.Model):
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
-        if Brand.objects.filter(slug=self.slug).exists():
+        if Brand.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
             self.slug = f'{self.slug}_{get_random_string()}'
         return super().save(*args, **kwargs)
 
@@ -29,13 +42,15 @@ class Style(models.Model):
     name = models.CharField('Название', max_length=400, unique=True)
     slug = models.SlugField(max_length=400, unique=True)
     is_show = models.BooleanField('Показывать на сайте', default=True, db_index=True)
+    image = models.ImageField(upload_to='styles/', blank=True, null=True)
+    description = models.TextField('Описание', blank=True)
 
     def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
-        if Style.objects.filter(slug=self.slug).exists():
+        if Style.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
             self.slug = f'{self.slug}_{get_random_string()}'
         return super().save(*args, **kwargs)
 
@@ -55,7 +70,7 @@ class Category(models.Model):
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
-        if Category.objects.filter(slug=self.slug).exists():
+        if Category.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
             self.slug = f'{self.slug}_{get_random_string()}'
         return super().save(*args, **kwargs)
 
@@ -124,10 +139,11 @@ class CatalogItem(AbstractBaseModel):
 
     gender = models.IntegerField('Пол', choices=Genders.choices, db_index=True)
     description = models.TextField('Описание', blank=True, max_length=1000)
-    article = models.CharField('Артикль', max_length=30)
+    article = models.CharField('Артикул', max_length=30)
     brand = models.ForeignKey(Brand, related_name='items', on_delete=models.CASCADE, verbose_name='Бренд')
 
     score = models.IntegerField('Популярность', default=0, db_index=True)
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='items', verbose_name='Магазин')
     store_address = models.CharField('Где забрать (адрес)', max_length=250)
     properties = models.ManyToManyField(Property, verbose_name='Свойства товара', related_name='items', blank=True)
     main_image = models.ImageField('Картинка в каталоге', upload_to='main_images/')
@@ -195,7 +211,7 @@ class UserStyle(models.Model):
 class LifeStyle(models.Model):
     image = models.ImageField(upload_to='lifestyles/')
     description = models.TextField()
-    styles = models.ManyToManyField(Style, related_name='lifestyles')
+    categories = models.ManyToManyField(Category, related_name='lifestyles')
 
     class Meta:
         verbose_name = 'Образ'

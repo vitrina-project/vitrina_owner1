@@ -5,7 +5,7 @@ prune:
 	docker system prune -f
 
 up:
-	docker compose -f docker-compose.yml --env-file=.env up -d --build
+	docker compose -f docker-compose.yml --env-file=.env up -d --build && docker system prune -f
 
 restart:
-	docker compose -f docker-compose.yml --env-file=.env down && docker compose -f docker-compose.yml --env-file=.env up -d --build
+	docker compose -f docker-compose.yml --env-file=.env down && docker compose -f docker-compose.yml --env-file=.env up -d --build && docker system prune -f

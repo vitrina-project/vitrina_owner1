@@ -12,21 +12,31 @@ class BrandSearchFilter(SearchFilter):
     search_param = 'name'
 
 
+# class CatalogOrderingFilter(filters.OrderingFilter):
+
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     self.extra['choices'] += [
+    #         ('sku_discount', 'Discount'),
+    #         ('-sku_discount', 'Discount (descending)'),
+    #     ]
+
+    # def filter(self, qs, value):
+    #     if any(v == 'discount' for v in value):
+    #         qs = qs.order_by('skus__discount')
+    #
+    #     if any(v == '-discount' for v in value):
+    #         qs = qs.order_by('-skus__discount')
+    #
+    #     return super().filter(qs, value)
+
+
 class CatalogItemFilter(FilterSet):
     is_favorited = filters.BooleanFilter(method='get_favorited_filter')
-    # is_in_shopping_cart = filters.BooleanFilter(
-    #     method='get_shopping_cart_filter')
-    # brand = filters.ModelMultipleChoiceFilter(
-    #     field_name='brand__slug',
-    #     queryset=Brand.objects.filter(source=Sources.UNICORN, is_show=True),
-    #     to_field_name='slug',
-    # )
-
     from_price = filters.NumberFilter(method='get_from_price_filter')
     to_price = filters.NumberFilter(method='get_to_price_filter')
-    # name = filters.CharFilter(lookup_expr='icontains')
     ordering = filters.OrderingFilter(
-        fields=('price', 'score', 'created_at'),
+        fields=('price', 'score', 'created_at', 'sku_discount'),
         field_labels={
             'price': 'price',
         }

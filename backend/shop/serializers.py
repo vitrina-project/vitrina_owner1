@@ -3,24 +3,28 @@ import logging
 from rest_framework import serializers
 
 from shop.models import (Brand, CatalogItem, Style, ItemSKU, Image, Property, ShoppingCart,
-                         Favorite)
+                         Favorite, LifeStyle, UserLifeStyle, BrandSubscription, UserStyle, Shop)
 
 logger = logging.getLogger()
 
 
 class BrandSerializer(serializers.ModelSerializer):
     items_count = serializers.IntegerField(read_only=True)
+    description = serializers.CharField(read_only=True)
+    is_subscribe = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
         model = Brand
-        fields = ('id', 'name', 'slug', 'items_count')
+        fields = ('id', 'name', 'slug', 'items_count', 'description', 'is_subscribe')
         read_only_fields = fields
 
 
 class StyleListSerializer(serializers.ModelSerializer):
+    description = serializers.CharField(read_only=True)
+
     class Meta:
         model = Style
-        fields = ('id', 'name', 'slug',)
+        fields = ('id', 'name', 'slug', 'image', 'description')
         read_only_fields = fields
 
 
@@ -43,7 +47,7 @@ class PropertySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Property
-        fields = ('type', 'value', 'key')
+        fields = ('id', 'type', 'value', 'key')
 
 
 class ItemSKUSerializer(serializers.ModelSerializer):
@@ -64,11 +68,15 @@ class CatalogItemListSerializer(serializers.ModelSerializer):
     is_favorited = serializers.BooleanField(default=False, read_only=True)
     category = serializers.SlugRelatedField(slug_field='slug', read_only=True, many=True)
     brand = serializers.StringRelatedField(read_only=True)
+    is_in_shopping_cart = serializers.BooleanField(read_only=True, default=False)
+    sku_id = serializers.IntegerField(read_only=True, default=None, allow_null=True)
+    store_address = serializers.CharField(read_only=True, source='shop.address')
+    sku_discount = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = CatalogItem
-        fields = ('id', 'name', 'slug', 'category', 'gender', 'article', 'brand',
-                  'price', 'is_favorited', 'score', 'store_address', 'main_image')
+        fields = ('id', 'name', 'slug', 'category', 'gender', 'article', 'brand', 'sku_discount',
+                  'price', 'is_favorited', 'score', 'store_address', 'main_image', 'is_in_shopping_cart', 'sku_id')
         read_only_fields = fields
 
 
@@ -79,11 +87,12 @@ class CatalogItemDetailSerializer(serializers.ModelSerializer):
     brand = BrandSerializer(read_only=True)
     images = ImageSerializer(many=True, read_only=True)
     properties = PropertySerializer(many=True, read_only=True)
+    styles = StyleListSerializer(many=True, read_only=True)
 
     class Meta:
         model = CatalogItem
         fields = ('id', 'name', 'slug', 'category', 'gender', 'description', 'article', 'brand',
-                  'skus', 'is_favorited', 'images', 'properties')
+                  'skus', 'is_favorited', 'images', 'properties', 'styles')
         read_only_fields = fields
 
     # def get_properties(self, obj):
@@ -96,10 +105,20 @@ class CatalogItemDetailSerializer(serializers.ModelSerializer):
     #     return {'skus': skus}
 
 
+class ShoppingCartItemSkuSerializer(ItemSKUSerializer):
+    brand = BrandSerializer(read_only=True, source='item.brand')
+    article = serializers.CharField(source='item.article', read_only=True)
+    store_address = serializers.CharField(source='item.shop.address', read_only=True)
+
+    class Meta:
+        model = ItemSKU
+        fields = ('id', 'price', 'discount', 'images', 'properties', 'brand', 'article', 'store_address')
+
+
 class ShoppingCartSerializer(serializers.ModelSerializer):
     name = serializers.CharField(read_only=True, source='item_sku.item.name')
     properties = PropertySerializer(many=True, read_only=True, source='item_sku.item.properties')
-    item_sku = ItemSKUSerializer(read_only=True)
+    item_sku = ShoppingCartItemSkuSerializer(read_only=True)
 
     class Meta:
         model = ShoppingCart
@@ -144,3 +163,38 @@ class FavoriteSerializer(serializers.ModelSerializer):
                 user=data['user'], item=data['item']).exists():
             raise serializers.ValidationError('Товар уже добавлен в избранное')
         return data
+
+
+class LifeStyleSerializer(serializers.ModelSerializer):
+    categories = CategoryListSerializer(many=True, read_only=True)
+    viewed = serializers.BooleanField(default=False)
+
+    class Meta:
+        model = LifeStyle
+        fields = ('id', 'image', 'description', 'categories', 'viewed')
+        read_only_fields = fields
+
+
+class LifeStyleViewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserLifeStyle
+        fields = ('user', 'style', 'liked')
+        read_only_fields = ('user', 'style')
+
+
+class BrandSubscriptionCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BrandSubscription
+        fields = ('user', 'brand')
+
+
+class StyleSubscriptionCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserStyle
+        fields = ('user', 'style')
+
+
+class ShopSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shop
+        fields = ('name', 'address')
